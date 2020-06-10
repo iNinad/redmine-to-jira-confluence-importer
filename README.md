@@ -1,5 +1,5 @@
 # redmine-to-jira-confluence
-Importer tool used to migrate issues and wiki pages from Redmine to Jira and Confluence. 
+Importer tool used to **migrate issues and wiki pages from Redmine to Jira and Confluence**. 
 
 ## Prerequisites
  * Python 3.4 or above installed on your machine 
@@ -15,19 +15,19 @@ Importer tool used to migrate issues and wiki pages from Redmine to Jira and Con
    
  * Once you have all the dependencies installed, you can start migrating Redmine issues or Wiki pages to Jira or Confluence.
  * More information can be provided using a YAML file. You will find two YAML files in the helpers directory.
- * Following three modes of migration are supported,
+ * Following **three modes of migration** are supported,
     
-   -  Single page migration can be performed with the following command, 
+   -  **Single page** migration can be performed with the following command, 
     
       `importer.py -w <Redmine Wiki page name (visible in the url)>`
    
-   -  Section migration is possible by executing the following command,
+   -  **Section** migration is possible by executing the following command,
 
       `importer.py -w <Redmine Section/Parent page name (visible in the url)> -m`
     
       Different sections are visible on the Redmine Wiki index page.  All the child pages including their hierarchy will be migrated to Confluence. 
 
-   -  Migration of all the Wiki pages under the given project can be achieved by the following command,
+   -  Migration of **all Wiki pages** under the given project can be achieved by the following command,
 
       `importer.py -w 'Wiki' -a`
    
