@@ -15,7 +15,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
    
  * Once you have all the dependencies installed, you can start migrating Redmine issues or Wiki pages to Jira or Confluence.
  * More information can be provided using a YAML file. You will find two YAML files in the helpers directory.
- * Following **three modes of migration** are supported,
+ * For Redmine Wiki to Confluence migration, following **three modes** are supported,
     
    -  **Single page** migration can be performed with the following command, 
     
@@ -32,3 +32,11 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
       `importer.py -w 'Wiki' -a`
    
       Entire pages including their relations and hierarchy will be migrated to Confluence. 
+
+* You can start migrating issues from Redmine to JIRA with a simple command like,
+
+     `importer.py -i <Redmine PBI number>`
+
+
+
+ ## Step-by-step guide
