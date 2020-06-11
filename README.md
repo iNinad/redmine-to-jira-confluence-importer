@@ -37,6 +37,4 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 
      `importer.py -i <Redmine PBI number>`
 
-
-
- ## Step-by-step guide
+## Further Notes
