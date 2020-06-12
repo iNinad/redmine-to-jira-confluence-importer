@@ -38,3 +38,24 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
      `importer.py -i <Redmine PBI number>`
 
 ## Further Notes
+
+* Following arguments are supported by the tool, 
+
+    `importer.py [-h] (-i PBI | -w WIKI) [-m] [-a] [-r] [-e EPIC] [-rk REDMINEKEY] [-rp REDMINEPROJECT] [-ju JIRAUSER] [-jk JIRAKEY] [-jp JIRAPROJECT] [-cs CONFLUENCESPACE] [-yml YAML]`
+ 
+      optional arguments:
+        -h, --help                                 Show this help message and exit
+        -m, --multiple                             Import a section (parent with all the child pages) to Confluence
+        -a, --all                                  Import all the pages from a given Redmine project to Confluence
+        -r, --remove                               Remove the original Redmine Wiki content and add a link to the Confluence page
+        -e, --epic <EPIC>                          Related Epic number in Jira, if any
+        -rk, --redminekey <REDMINEKEY>             Redmine API key
+        -rp, --redmineproject <REDMINEPROJECT>     Redmine Project name
+        -ju, --jirauser <JIRAUSER>                 Jira User
+        -jk, --jirakey <JIRAKEY>                   Jira API key
+        -jp, --jiraproject <JIRAPROJECT>           Jira Project used for importing the issues
+        -cs, --confluencespace <CONFLUENCESPACE>   Confluence Space used for importing the Wiki pages
+        -yml, --yaml <YAML filename>               YAML file to use, it should be present in the helpers directory
+
+      required arguments:
+        -w WIKI, --wiki WIKI                       Title of the Redmine wiki page to migrate to Confluence`
