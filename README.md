@@ -63,3 +63,9 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 * Some of the information (like Redmine project, Confluence space name etc.) is stored in the YAML file. This information will be overridden by the values provided via arguments.
 * If you wish to replace the contents of the original Redmine Wiki page with a link to the newly created Confluence page, use -r argument. 
 * Please make sure that the Importer user has all the required permissions on the Confluence space.  
+
+
+## Known issues
+* Color markup is not supported by Confluence, the tool will transform all the colored text from Redmine to the bold format in Confluence while migration.
+* Confluence does not support table cell alignment, table row/column span etc via markup.
+* Some of the Redmine markups are not compatible with Confluence, like the Markups for collapse, popular pages and includes. 
