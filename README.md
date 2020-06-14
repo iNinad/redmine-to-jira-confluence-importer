@@ -59,3 +59,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 
       required arguments:
         -w WIKI, --wiki WIKI                       Title of the Redmine wiki page to migrate to Confluence`
+
+* Some of the information (like Redmine project, Confluence space name etc.) is stored in the YAML file. This information will be overridden by the values provided via arguments.
+* If you wish to replace the contents of the original Redmine Wiki page with a link to the newly created Confluence page, use -r argument. 
+* Please make sure that the Importer user has all the required permissions on the Confluence space.  
