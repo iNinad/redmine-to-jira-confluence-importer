@@ -1,4 +1,5 @@
 import argparse
+import yaml
 
 
 class ConfluenceImportError(Exception):
@@ -32,6 +33,12 @@ def get_config_data(file_path):
     Returns:
         A dictionary with key-values from the .yaml file.
     """
+    try:
+        with open(file_path) as file_handle:
+            config = yaml.safe_load(file_handle)
+            return config
+    except Exception as e:
+        print('Could not load {0}:\n {1}'.format(file_path, e))
 
 
 def get_args():
