@@ -1,4 +1,6 @@
 import argparse
+import json
+import requests
 import yaml
 
 
@@ -90,6 +92,18 @@ def request_redmine(url):
     Returns:
         A dictionary with the response values.
     """
+    try:
+        resp = requests.get(url, headers=get_headers())
+        resp.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xxx
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        print("Connection error while contacting the Redmine server.")
+        return None
+    except requests.exceptions.HTTPError:
+        print("Internal Server error")
+        return None
+    else:
+        json_data = json.loads(resp.text)
+        return json_data
 
 
 def is_imported(subject):
