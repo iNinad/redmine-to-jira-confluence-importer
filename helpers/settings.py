@@ -1,6 +1,12 @@
+from atlassian import Confluence
+from jira import JIRA
+from redminelib import Redmine
 import argparse
+import base64
 import json
 import requests
+import os
+import urllib3
 import yaml
 
 
@@ -25,6 +31,40 @@ def init():
     Returns:
         None.
     """
+    global yaml_vars, arg_vars, redmine, jira, confluence, wiki_pages_rel, wiki_pages_imported, current_page
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    arg_vars = get_args()
+
+    # Check if the .yaml file provided in the command line arguments, if yes, use the provided file.
+    # Otherwise, use 'vars.yaml'.
+    yaml_vars = get_config_data(os.path.join(dir_path, arg_vars.yaml)) if arg_vars.yaml is not None \
+        else get_config_data(os.path.join(dir_path, 'vars.yaml'))
+    # Check if Redmine API key, Jira user and Jira project is provided in the command line.
+    # If yes, overwrite variables which are initialized from the .yaml file.
+    if arg_vars.redminekey:
+        yaml_vars['redmine_apikey'] = arg_vars.redminekey
+    if arg_vars.redmineproject:
+        yaml_vars['redmine_wiki_project'] = arg_vars.redmineproject
+    if arg_vars.jirauser:
+        yaml_vars['jira_user'] = arg_vars.jirauser
+    if arg_vars.jiraproject:
+        yaml_vars['jira_project'] = arg_vars.jiraproject
+    if arg_vars.confluencespace:
+        yaml_vars['confluence_space'] = arg_vars.confluencespace
+    # Initialize the redmine instance.
+    redmine = Redmine(yaml_vars['redmine_server'], key=yaml_vars['redmine_apikey'],
+                      requests={'timeout': 10})
+    redmine_project = redmine.project.get(yaml_vars['redmine_wiki_project'])
+    yaml_vars['redmine_project_id'] = redmine_project.id
+    # Suppress the InsecureRequestWarnings.
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    # Initialize the jira instance.
+    jira = JIRA({'server': yaml_vars['jira_server'], 'verify': False},
+                basic_auth=(yaml_vars['jira_user'],
+                            base64.b64decode(yaml_vars['jira_password']).decode("utf-8")))
+    confluence = Confluence(url=yaml_vars['confluence_server'],
+                            username=yaml_vars['confluence_user'],
+                            password=base64.b64decode(yaml_vars['confluence_password']).decode("utf-8"))
 
 
 def get_config_data(file_path):
