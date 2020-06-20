@@ -155,6 +155,12 @@ def is_imported(subject):
     Returns:
         Returns True if a given Redmine issue is already imported in Jira, otherwise False.
     """
+    if arg_vars.pbi and '[JIRA-{}-'.format(yaml_vars['jira_project']) in subject:
+        return True
+    elif arg_vars.wiki and '*Migrated to Confluence "' in subject:
+        return True
+    else:
+        return False
 
 
 def get_confluence_page(description):
