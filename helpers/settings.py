@@ -122,6 +122,7 @@ def get_headers():
     Returns:
         A dictionary with the header values.
     """
+    return {'X-Redmine-API-Key': yaml_vars['redmine_apikey'], 'content-type': 'application/json'}
 
 
 def request_redmine(url):
