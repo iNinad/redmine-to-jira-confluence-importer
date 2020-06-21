@@ -171,6 +171,14 @@ def get_confluence_page(description):
     Returns:
         Returns the Confluence page object, if found. Otherwise None will be returned.
     """
+    if arg_vars.wiki and '*Migrated to Confluence "' in description:
+        match_patterns = re.findall(r"\*Migrated to Confluence \"(.*?)\"", description)
+        for match_pattern in match_patterns:
+            confluence_page = confluence.get_page_by_title(yaml_vars['confluence_space'], match_pattern)
+            if confluence_page is not None:
+                return confluence_page
+    else:
+        return None
 
 
 def update_formatting(description):
