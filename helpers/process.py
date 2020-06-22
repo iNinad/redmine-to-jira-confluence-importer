@@ -11,6 +11,14 @@ def get_login(user_id):
     Returns:
         Returns the username, if found. Otherwise None will be returned.
     """
+    url = "{}/users/{}.json".format(settings.yaml_vars['redmine_server'], user_id)
+    json_data = settings.request_redmine(url)
+    if json_data:
+        user = json_data.get('user')
+        if user.get('login'):
+            return user.get('login')
+    else:
+        return None
 
 
 def get_relations(issue_id):
