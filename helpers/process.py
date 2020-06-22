@@ -29,6 +29,9 @@ def get_relations(issue_id):
     Returns:
         Returns a dictionary with all the relations.
     """
+    url = "{}/issues/{}/relations.json".format(settings.yaml_vars['redmine_server'], issue_id)
+    json_data = settings.request_redmine(url)
+    return json_data["relations"]
 
 
 def get_pages_info():
