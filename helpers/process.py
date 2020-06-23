@@ -40,6 +40,10 @@ def get_pages_info():
     Returns:
         Returns a dictionary with all the relations.
     """
+    url = "{}/projects/{}/wiki/index.json".format(settings.yaml_vars['redmine_server'],
+                                                  settings.yaml_vars['redmine_project_id'])
+    json_data = settings.request_redmine(url)
+    return json_data["wiki_pages"]
 
 
 def get_checklists(issue_id):
