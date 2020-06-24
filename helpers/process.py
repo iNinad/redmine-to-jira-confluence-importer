@@ -77,6 +77,11 @@ def validate_issue(redmine_issue):
     Returns:
         Returns True if a given Redmine issue is not in Finished or Cancelled state, otherwise False.
     """
+    if redmine_issue.status.id in [5, 9]:
+        print("Import is not allowed as the PBI: {0} is either in Finished or Cancelled state.".
+              format(redmine_issue))
+        return False
+    return True
 
 
 def is_migration_successful(confluence_page):
