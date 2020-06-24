@@ -54,6 +54,19 @@ def get_checklists(issue_id):
     Returns:
         Returns a formatted string with the checklist.
     """
+    url = "{}/issues/{}/checklists.json".format(settings.yaml_vars['redmine_server'], issue_id)
+    json_data = settings.request_redmine(url)
+    checklists = [(checklist.get('subject'), checklist.get('is_done'))
+                  for checklist in json_data['checklists']]
+    result = ''
+    if checklists:
+        result = '\n\n*Checklist:*\n'
+        for checklist in checklists:
+            if checklist[1] is not None:
+                result += '* (/) -{}-\n'.format(checklist[0])
+            else:
+                result += '* {}\n'.format(checklist[0])
+    return result
 
 
 def validate_issue(redmine_issue):
