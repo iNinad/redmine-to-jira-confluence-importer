@@ -92,6 +92,9 @@ def is_migration_successful(confluence_page):
     Returns:
         True, if the Confluence page is successfully created. Otherwise False will be returned.
     """
+    if 'statusCode' in confluence_page and int(str(confluence_page['statusCode'])[:1]) != 2:
+        return False
+    return True
 
 
 def import_confluence_wiki(wiki_page_title):
