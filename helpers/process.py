@@ -172,6 +172,13 @@ def update_redmine_issue(jira_issue_id, redmine_issue):
     Returns:
         None.
     """
+    settings.redmine.issue.update(redmine_issue.id,
+                                  subject='{} [JIRA-{}]'.format(redmine_issue.subject, jira_issue_id),
+                                  description='{} \n*Migrated to JIRA "{}":{}/browse/{}*'.format(
+                                      redmine_issue.description, jira_issue_id,
+                                      settings.yaml_vars['jira_server'],
+                                      jira_issue_id))
+    print("{}: Added reference to the Jira issue".format(redmine_issue.id))
 
 
 def update_redmine_wiki(confluence_page, wiki_page):
