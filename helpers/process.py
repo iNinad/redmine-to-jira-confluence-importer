@@ -191,6 +191,12 @@ def update_redmine_wiki(confluence_page, wiki_page):
     Returns:
         None.
     """
+    confluence_url = confluence_page['_links']['base'] + confluence_page['_links']['webui']
+    reference_sentence = '\n*Migrated to Confluence "{}":{}*'.format(confluence_page['title'],
+                                                                     confluence_url)
+    wiki_page.text += reference_sentence
+    wiki_page.save()
+    print("{}: Added reference to the Confluence page".format(wiki_page.title))
 
 
 def relate_issues(jira_issue, redmine_issue):
