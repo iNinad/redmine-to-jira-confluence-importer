@@ -220,6 +220,13 @@ def update_reporter(author_id, jira_issue):
     Returns:
         None.
     """
+    try:
+        author_username = get_login(author_id)
+        if author_username:
+            jira_issue.update(reporter={'name': author_username})
+            print("{}: Updated the reporter to {}".format(jira_issue.key, author_username))
+    except Exception as e:
+        print('{}: Could not update the reporter : {}'.format(jira_issue.key, e.text))
 
 
 def update_assignee(jira_issue, redmine_issue, po_username=None):
