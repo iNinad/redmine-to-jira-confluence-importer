@@ -250,6 +250,35 @@ def add_attachments(source, destination):
     Returns:
         None.
     """
+    try:
+        for item in source.attachments:
+            attachment = settings.redmine.attachment.get(item.id)
+            file_path = attachment.download(savepath='.', filename=item.filename)
+            if settings.arg_vars.pbi:
+                settings.jira.add_attachment(issue=destination, attachment=file_path, filename=item.filename)
+                print("{}: Added attachment: {}".format(destination.key, item.filename))
+            elif settings.arg_vars.wiki:
+                status = settings.confluence.attach_file(filename=file_path,
+                                                         name=item.filename,
+                                                         page_id=destination['id'],
+                                                         title=destination['title'],
+                                                         space=settings.yaml_vars['confluence_space'])
+                if status is None:
+                    print("{}: Failed to add attachment: {}".format(source.title, item.filename))
+                elif not is_migration_successful(status):
+                    raise settings.ConfluenceImportError(status['statusCode'], status['message'],
+                                                         status['reason'])
+                else:
+                    print("{}: Added attachment: {}".format(source.title, item.filename))
+            os.remove(file_path)
+    except settings.ConfluenceImportError as error:
+        print('Failed to add an attachmentConfluenceImportError to a confluence page: {}'.
+              format(error))
+    except Exception as e:
+        if settings.arg_vars.pbi:
+            print('{}: Could not add attachment: {}', destination.key, e)
+        elif settings.arg_vars.wiki:
+            print('{}: Could not add attachment: {}', destination, e)
 
 
 def add_comments(source, destination):
