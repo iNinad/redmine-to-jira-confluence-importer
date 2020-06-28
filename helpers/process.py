@@ -292,6 +292,18 @@ def add_comments(source, destination):
     Returns:
         None.
     """
+    for record in source.journals:
+        if hasattr(record, 'notes') and record.notes.strip():
+            comment_author = record.user.name
+            comment = settings.update_formatting(record.notes)
+            if comment.strip():
+                comment_description = "Commented by: {}\n{}".format(comment_author, comment)
+                if settings.arg_vars.pbi:
+                    settings.jira.add_comment(destination, comment_description)
+                    print("{}: Added Comment: {}...".format(destination.key, record.notes[:15]))
+                elif settings.arg_vars.wiki:
+                    settings.confluence.add_comment(destination['id'], comment_description)
+                    print("{}: Added Comment: {}...".format(destination['id'], record.notes[:15]))
 
 
 def add_subtasks(redmine_issue, jira_issue):
