@@ -315,5 +315,27 @@ def add_subtasks(redmine_issue, jira_issue):
     Returns:
         None.
     """
+    for child in redmine_issue.children:
+        subtask = settings.redmine.issue.get(child.id)
+        subtask_dict = {
+            'project': {'key': settings.yaml_vars['jira_project']},
+            'summary': subtask.subject,
+            'issuetype': {'name': 'Sub-task'},
+            'parent': {'id': jira_issue.key},
+        }
+
+        # Check if the assigned_to field exists.
+        if hasattr(subtask, 'assigned_to'):
+            # Check if the assignee is a team as it is now mandatory for creating a task.
+            if subtask.assigned_to.name in list(settings.yaml_vars['teams'].keys()):
+                assigned_team = settings.yaml_vars['teams'][subtask.assigned_to.name]
+                subtask_dict['customfield_12802'] = [{'value': assigned_team}]
+
+        child = settings.jira.create_issue(fields=subtask_dict)
+        print("{}: Created sub-task {} ".format(jira_issue.key, child.key))
+        update_assignee(child, subtask)
+        update_status(child, subtask.status.name.lower(), 'subtask')
+        add_comments(subtask, child)
+        add_attachments(subtask, child)
 
 
