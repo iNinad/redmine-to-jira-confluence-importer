@@ -209,6 +209,32 @@ def relate_issues(jira_issue, redmine_issue):
     Returns:
         None.
     """
+    try:
+        issue_relations = get_relations(redmine_issue.id)
+        # Iterate through each relation.
+        for relation in issue_relations:
+            related_issue_id = relation.get('issue_to_id') \
+                if relation.get('issue_id') == redmine_issue.id else relation.get('issue_id')
+            related_issue = settings.redmine.issue.get(related_issue_id)
+            # Check if the related issue is imported in Jira.
+            if settings.is_imported(related_issue.subject) \
+                    and relation.get('relation_type') in list(settings.yaml_vars['issue_relations'].keys()):
+                related_jira_id = re.search(r"\[JIRA-([A-Za-z0-9-]+)\]", related_issue.subject).group(1)
+                link_type = settings.yaml_vars['issue_relations'].get(relation.get('relation_type'))
+                if relation.get('issue_id') == redmine_issue.id:
+                    inward_issue, outward_issue = jira_issue.key, related_jira_id
+                else:
+                    inward_issue, outward_issue = related_jira_id, jira_issue.key
+                # Create a link.
+                settings.jira.create_issue_link(
+                    type=link_type,
+                    inwardIssue=inward_issue,
+                    outwardIssue=outward_issue
+                )
+                print("{}: Created {} link to {}".format(jira_issue.key,
+                                                         link_type, related_jira_id))
+    except Exception as e:
+        print('{}: Could not relate issues : {}'.format(jira_issue.key, e))
 
 
 def update_reporter(author_id, jira_issue):
