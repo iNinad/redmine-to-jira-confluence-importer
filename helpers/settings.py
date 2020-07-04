@@ -4,6 +4,7 @@ from redminelib import Redmine
 import argparse
 import base64
 import json
+import re
 import requests
 import os
 import urllib3
@@ -189,4 +190,118 @@ def update_formatting(description):
     Returns:
         Returns a formatted string.
     """
+    formatted_description = description.replace('<pre><code class', '<code class')
+    formatted_description = formatted_description.replace('</code></pre>', '</code>')
+    formatted_description = formatted_description.replace('<pre>', '{noformat}')
+    formatted_description = formatted_description.replace('</pre>', '{noformat}')
+    match_inline_codes = re.findall(r"\@(.*?)\@", formatted_description)
+    for matched_inline_code in set(match_inline_codes):
+        formatted_description = formatted_description.replace(
+            '@{}@'.format(matched_inline_code), '{{' + matched_inline_code + '}}')
+    formatted_description = formatted_description.replace('*READY FOR MIGRATION TO JIRA*', '')
+    match_pbis = re.findall('#(\d+)', formatted_description)
+    for matched_pbi in set(match_pbis):
+        formatted_description = formatted_description.replace(
+            '#{}'.format(matched_pbi), '[#{}|{}/issues/{}]'.format(
+                matched_pbi, yaml_vars['redmine_server'], matched_pbi))
+
+    if arg_vars.wiki:
+        formatted_description = formatted_description.replace('{{>toc}}', '{toc}')
+        # Replace || with | | to render an empty cell of the table in Confluence
+        formatted_description = formatted_description.replace('||', '| | ')
+        formatted_description = formatted_description.replace('|_.', '||')
+        formatted_description = formatted_description.replace('|^.', '|')
+        formatted_description = formatted_description.replace('|>.', '|')
+        formatted_description = formatted_description.replace('|<.', '|')
+        formatted_description = formatted_description.replace('|~.', '|')
+        formatted_description = formatted_description.replace('|=.', '|')
+        formatted_description = formatted_description.replace('|_<.', '||')
+        formatted_description = formatted_description.replace('<notextile>', '')
+        formatted_description = formatted_description.replace('</notextile>', '')
+        formatted_description = formatted_description.replace('<code>', '{code}')
+        formatted_description = formatted_description.replace('</code>', '{code}')
+        match_source_code = re.findall(r"<code class=\"(.*?)\">", formatted_description)
+        match_child_macro = re.findall(r"{{child_pages\(depth=(.*?)\)}}", formatted_description)
+        # Need to redesign the following replace as [] can occur in the code or within {nofomat}
+        # or {code} macros
+        match_single_square_markup = re.findall(r"\[(.*?)\]", formatted_description)
+        match_double_square_markup = re.findall(r"\[\[(.*?)\]\]", formatted_description)
+        match_pc_markup = re.findall(r"%(.*?)%", formatted_description)
+        match_bg_markup = re.findall(r"{background:(.*?)}", formatted_description)
+        try:
+
+            for matched_code in set(match_pc_markup):
+                formatted_description = formatted_description.replace(
+                    '%{}%'.format(matched_code),
+                    '*{}*'.format(matched_code))
+
+            for matched_code in set(match_bg_markup):
+                formatted_description = formatted_description.replace(
+                    '{{background:{}}}'.format(matched_code), '')
+
+            for matched_code in set(match_source_code):
+                formatted_description = formatted_description.replace(
+                    '<code class="{}">'.format(matched_code),
+                    '{{code:language={}}}'.format(matched_code))
+            for matched_macro in set(match_child_macro):
+                formatted_description = formatted_description.replace(
+                    '{{child_pages(depth={0})}}'.format(matched_macro),
+                    'children:sort=creation|depth={0}'.format(matched_macro))
+            for matched_square_markup in set(match_single_square_markup):
+                if not matched_square_markup.startswith('[') and \
+                        matched_square_markup[1:] not in set(match_double_square_markup):
+                    formatted_description = formatted_description.replace(
+                        '[{0}]'.format(matched_square_markup),
+                        '[[{0}]]'.format(matched_square_markup))
+            for matched_square_markup in set(match_double_square_markup):
+                link = matched_square_markup.split('|')[0].split('#')[0]
+                try:
+                    correct_title = link.replace(' ', '_').replace('.', '')
+                    if ':' in correct_title:
+                        redmine_project = correct_title.split(':')[0]
+                        correct_title = correct_title.split(':')[1]
+                    else:
+                        redmine_project = yaml_vars['redmine_project_id']
+                    wiki_page = redmine.wiki_page.get(correct_title, project_id=redmine_project)
+                except Exception as e:
+                    wiki_page = None
+                    print("Could not find a Redmine Wiki page with title - {}".format(link))
+                if wiki_page:
+                    if arg_vars.all:
+                        if redmine_project == yaml_vars['redmine_project_id']:
+                            formatted_description = formatted_description.replace(
+                                '[[{0}]]'.format(matched_square_markup),
+                                '[{0}]'.format(wiki_page.title.replace('_', ' ')))
+                        else:
+                            # If the page is on another Wiki project, add link to the the original Redmine Wiki page.
+                            formatted_description = formatted_description.replace(
+                                '[[{0}]]'.format(matched_square_markup),
+                                "[{}|{}/projects/{}/wiki/{}]".format(link, yaml_vars['redmine_server'],
+                                                                     redmine_project,
+                                                                     wiki_page.title.replace('_', ' ')))
+                    else:
+                        is_present = confluence.page_exists(yaml_vars['confluence_space'],
+                                                            wiki_page.title.replace('_', ' '))
+                        if is_present:
+                            formatted_description = formatted_description.replace(
+                                '[[{0}]]'.format(matched_square_markup),
+                                '[{0}]'.format(wiki_page.title.replace('_', ' ')))
+                        elif wiki_page.title == current_page:
+                            formatted_description = formatted_description.replace(
+                                '[[{0}]]'.format(matched_square_markup),
+                                '[{0}]'.format(matched_square_markup.split('|')[0].replace('_', ' ')))
+                        else:
+                            # If the page is not present in Confluence, add link to the the original Redmine Wiki page.
+                            formatted_description = formatted_description.replace(
+                                '[[{0}]]'.format(matched_square_markup),
+                                "[{}|{}/projects/{}/wiki/{}]".format(link, yaml_vars['redmine_server'],
+                                                                     redmine_project,
+                                                                     wiki_page.title.replace('_', ' ')))
+                formatted_description = formatted_description.replace(
+                    '[[{0}]]'.format(matched_square_markup),
+                    '[{0}]'.format(matched_square_markup))
+        except Exception as e:
+            print(e)
+
+    return formatted_description
 
