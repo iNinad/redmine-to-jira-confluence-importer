@@ -4,9 +4,9 @@ from redminelib import Redmine
 import argparse
 import base64
 import json
+import os
 import re
 import requests
-import os
 import urllib3
 import yaml
 
@@ -38,7 +38,7 @@ def init():
 
     # Check if the .yaml file provided in the command line arguments, if yes, use the provided file.
     # Otherwise, use 'vars.yaml'.
-    yaml_vars = get_config_data(os.path.join(dir_path, arg_vars.yaml)) if arg_vars.yaml is not None \
+    yaml_vars = get_config_data(os.path.join(dir_path, arg_vars.yaml)) if arg_vars.yaml is not None\
         else get_config_data(os.path.join(dir_path, 'vars.yaml'))
     # Check if Redmine API key, Jira user and Jira project is provided in the command line.
     # If yes, overwrite variables which are initialized from the .yaml file.
