@@ -105,6 +105,22 @@ def import_confluence_wiki(wiki_page_title):
     Returns:
         Function calls itself until all the pages are imported and returns 0, if successful.
     """
+    wiki_page = settings.redmine.wiki_page.get(wiki_page_title,
+                                               project_id=settings.yaml_vars['redmine_project_id'])
+    if not settings.is_imported(wiki_page.text) and wiki_page.title not in settings.wiki_pages_imported:
+        confluence_page = create_confluence_wiki(wiki_page)
+        # Update the original Wiki page and add a link to the Confluence Page, if requested.
+        if settings.arg_vars.remove:
+            update_redmine_wiki(confluence_page, wiki_page)
+
+    # Import child pages, if they are present.
+    if wiki_page_title in settings.wiki_pages_rel:
+        child_pages = settings.wiki_pages_rel[wiki_page_title].split(', ')
+        for child_page in child_pages:
+            if child_page:
+                import_confluence_wiki(child_page)
+    else:
+        return 0
 
 
 def create_confluence_wiki(wiki_page):
