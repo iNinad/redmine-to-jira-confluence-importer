@@ -131,6 +131,113 @@ def create_confluence_wiki(wiki_page):
     Returns:
         Confluence page (obj), if successful. Otherwise, it returns -1.
     """
+    # Create a page in Confluence.
+    new_title = wiki_page.title.replace('_', ' ')
+    settings.current_page = wiki_page.title
+    print("Creating a Confluence page: {}".format(new_title))
+    try:
+        wiki_content = settings.update_formatting(wiki_page.text.split('{{fnlist}}', 1)[0])
+        wiki_page_first_version = settings.redmine.wiki_page.get(wiki_page.title,
+                                                                 project_id=settings.yaml_vars['redmine_project_id'],
+                                                                 version=1)
+        # Add author and the last update details
+        wiki_content += "\n----\n??Migrated from Redmine Wiki [{}|{}/projects/{}/wiki/{}]. " \
+                        "Originally created on {} by {}. Last update on Redmine was on {} by {}??".format(
+            wiki_page.title, settings.yaml_vars['redmine_server'],
+            settings.yaml_vars['redmine_wiki_project'], wiki_page.title,
+            wiki_page.created_on, wiki_page_first_version.author.name, wiki_page.updated_on, wiki_page.author.name)
+
+        # Get the parent, if present
+        confluence_parent_id = None
+        # Check if parent attribute is present in the wiki_page
+        if hasattr(wiki_page, 'parent'):
+            wiki_parent = wiki_page.parent.title
+            # check if the parent page is migrated to Confluence
+            parent_wiki_page = settings.redmine.wiki_page.get(
+                wiki_parent, project_id=settings.yaml_vars['redmine_project_id'])
+            # check if page title is present in Confluence
+            testt = settings.confluence.get_space(settings.yaml_vars['confluence_space'])
+            is_present = settings.confluence.page_exists(settings.yaml_vars['confluence_space'],
+                                                         parent_wiki_page.title.replace('_', ' '))
+            if is_present or parent_wiki_page.title in settings.wiki_pages_imported:
+                confluence_parent_id = settings.confluence.get_page_id(settings.yaml_vars['confluence_space'],
+                                                                       parent_wiki_page.title.replace('_', ' '))
+            elif settings.is_imported(parent_wiki_page.text):
+                parent_confluence_page = settings.get_confluence_page(parent_wiki_page.text)
+                confluence_parent_id = parent_confluence_page['id']
+                print("{}: Parent page found in Confluence: {}".format(
+                    new_title, parent_confluence_page['title']))
+        confluence_page = settings.confluence.create_page(
+            space=settings.yaml_vars['confluence_space'],
+            parent_id=confluence_parent_id,
+            title=new_title,
+            body=wiki_content,
+            representation='wiki')
+
+        while 'statusCode' in confluence_page and "UnknownMacroMigrationException: The macro " in \
+                confluence_page['message']:
+            unknown_macro = re.findall("The macro '(.*?)' is unknown", confluence_page['message'], 
+                                       re.DOTALL)
+            print("Previous attempt to create a Confluence page failed because of the unknown"
+                  " macro : " + unknown_macro[0])
+
+            if unknown_macro:
+                search_unknown_macro = re.findall('{' + unknown_macro[0], wiki_content, re.IGNORECASE)
+                for searched_macro in set(search_unknown_macro):
+                    wiki_content = wiki_content.replace(searched_macro, '\\' + searched_macro)
+                    wiki_content = wiki_content.replace('\\\\' + searched_macro, '\\' + searched_macro)
+
+                if not search_unknown_macro and '{'+unknown_macro[0]+'}' in wiki_content:
+                    print("Replacing : {"+unknown_macro[0]+"} with \\{"+unknown_macro[0]+"}")
+                    wiki_content = wiki_content.replace('{'+unknown_macro[0]+'}',
+                                                        '\\{'+unknown_macro[0]+'}')
+                elif not search_unknown_macro and '{'+unknown_macro[0]+'}' not in wiki_content:
+                    unknown_macro_index = re.search('{' + unknown_macro[0], wiki_content, re.IGNORECASE)
+                    if unknown_macro_index:
+                        match_found = unknown_macro_index.group()
+                        print("Replacing : " + match_found + " with \\" + match_found )
+                        wiki_content = wiki_content.replace(match_found, '\\' + match_found)
+                        insensitive_hippo = re.compile(re.escape('{' + unknown_macro[0]), re.IGNORECASE)
+                        if insensitive_hippo:
+                            wiki_content = insensitive_hippo.sub('\\{' + unknown_macro[0], wiki_content)
+                    else:
+                        check_value = unknown_macro[0].strip().split('\n')[0]
+                        unknown_macro_index = wiki_content.find(check_value)
+                        if unknown_macro_index != -1:
+                            while wiki_content[unknown_macro_index] != '{' and unknown_macro_index > 0:
+                                unknown_macro_index = unknown_macro_index - 1
+                            if wiki_content[unknown_macro_index] == '{':
+                                print("{ is used with new line before :" + unknown_macro[0])
+                                print("Replacing : { at the " + str(unknown_macro_index) + " index with \\{")
+                                wiki_content = wiki_content[:unknown_macro_index] + \
+                                               "\\{" + wiki_content[unknown_macro_index + 1:]
+
+            print("Trying to create {} page again as the previous attempt was failed".format(wiki_page.title))
+            confluence_page = settings.confluence.create_page(
+                space=settings.yaml_vars['confluence_space'],
+                parent_id=confluence_parent_id,
+                title=new_title,
+                body=wiki_content,
+                representation='wiki')
+
+        if not is_migration_successful(confluence_page):
+            raise settings.ConfluenceImportError(confluence_page['statusCode'],
+                                                 confluence_page['message'],
+                                                 confluence_page['reason'])
+        print("Created a new confluence page: {}".format(wiki_page.title))
+        settings.wiki_pages_imported.add(wiki_page.title)
+
+        # Add attachments
+        add_attachments(wiki_page, confluence_page)
+
+        # Add comments [NOT POSSIBLE TO FETCH THIS DATA FROM REDMINE VIA REST]
+        # add_comments(wiki_page, confluence_page)
+
+    except settings.ConfluenceImportError as error:
+        print('Failed to create a confluence page {}: {}'.format(wiki_page.title, error))
+        exit(-1)
+
+    return confluence_page
 
 
 def create_jira_issue(redmine_issue):
