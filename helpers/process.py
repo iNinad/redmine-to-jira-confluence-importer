@@ -156,7 +156,6 @@ def create_confluence_wiki(wiki_page):
             parent_wiki_page = settings.redmine.wiki_page.get(
                 wiki_parent, project_id=settings.yaml_vars['redmine_project_id'])
             # check if page title is present in Confluence
-            testt = settings.confluence.get_space(settings.yaml_vars['confluence_space'])
             is_present = settings.confluence.page_exists(settings.yaml_vars['confluence_space'],
                                                          parent_wiki_page.title.replace('_', ' '))
             if is_present or parent_wiki_page.title in settings.wiki_pages_imported:
