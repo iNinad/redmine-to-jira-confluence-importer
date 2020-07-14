@@ -387,6 +387,39 @@ def update_assignee(jira_issue, redmine_issue, po_username=None):
     Returns:
         None.
     """
+    try:
+        # Check if the assigned_to field exists.
+        if hasattr(redmine_issue, 'assigned_to'):
+            # Check if the assignee is a team or a PO.
+            if redmine_issue.assigned_to.name in list(settings.yaml_vars['teams'].keys()):
+                assigned_team = settings.yaml_vars['teams'][redmine_issue.assigned_to.name]
+                jira_issue.update(fields={'customfield_12802': [{'value': assigned_team}]})
+                print("{}: Updated Team to {}".format(jira_issue.key, assigned_team))
+            if redmine_issue.assigned_to.name in list(settings.yaml_vars['assignee'].keys()):
+                # Assign it to the PO of the team.
+                assigned_po = settings.yaml_vars['assignee'][redmine_issue.assigned_to.name]
+                po_user = settings.redmine.user.filter(name=assigned_po)
+                if po_user:
+                    po_userlogin = get_login(po_user[0].id)
+                    if po_userlogin:
+                        jira_issue.update(assignee={'name': po_userlogin})
+                        print("{}: Updated the assignee to {}".format(jira_issue.key, po_userlogin))
+                    else:
+                        print(
+                            "Assignee login for {} does not exists.".format(redmine_issue.assigned_to.name))
+            elif not po_username:
+                # Assign it to the individual team member.
+                author_username = get_login(redmine_issue.assigned_to.id)
+                if author_username:
+                    jira_issue.update(assignee={'name': author_username})
+                    print("{}: Updated the assignee to {}".format(jira_issue.key, author_username))
+                else:
+                    print("Assignee login for {} does not exists.".format(redmine_issue.assigned_to.name))
+        if po_username:
+            jira_issue.update(assignee={'name': po_username})
+            print("{}: Updated the assignee to {}".format(jira_issue.key, po_username))
+    except Exception as e:
+        print('{}: Could not update the assignee : {}'.format(jira_issue.key, e.text))
 
 
 def add_attachments(source, destination):
