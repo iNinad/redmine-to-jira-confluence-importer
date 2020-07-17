@@ -247,6 +247,169 @@ def create_jira_issue(redmine_issue):
     Returns:
         Returns a newly created Jira issue (Resource object).
     """
+    issue_type, redmine_work_type = get_issue_work_type(redmine_issue)
+    issue_description, subject = update_subject_description(redmine_issue)
+
+    issue_dict = {'project': settings.yaml_vars['jira_project'],
+                  'summary': subject,
+                  'description': issue_description,
+                  'issuetype': {'name': settings.yaml_vars['issue_types'][issue_type]}
+                  }
+
+    # Add additional keys to the issue_dict depending on the issue_type
+    if issue_type in ['ESCSTORY', 'ESCDOC', 'ESCCR']:
+        is_esc_no = list(filter(lambda person: person['name'] == 'ESC Number',
+                                redmine_issue.custom_fields))
+        is_esc_ps_no = list(filter(lambda person: person['name'] == 'PS Number',
+                                   redmine_issue.custom_fields))
+        is_esc_found_version = list(filter(lambda person: person['name'] == 'Detected in Version',
+                                           redmine_issue.custom_fields))
+        esc_no = is_esc_no[0].value if is_esc_no else None
+        esc_ps_no = is_esc_ps_no[0].value if is_esc_ps_no else None
+        esc_found_version = is_esc_found_version[0].value if is_esc_found_version else None
+        is_esc_priority = re.findall(r'\d+', redmine_issue.priority.name)
+        if is_esc_priority:
+            esc_priority = int(re.findall(r'\d+', redmine_issue.priority.name)[0])
+        else:
+            esc_priority = 'Default'
+        issue_dict['customfield_14003'] = esc_ps_no
+        issue_dict['customfield_14002'] = esc_no
+        issue_dict['customfield_10104'] = esc_found_version
+        issue_dict['priority'] = {'name': settings.yaml_vars['esc_priorites'][esc_priority]}
+
+        if issue_type == 'ESCSTORY':
+            esc_severity = list(filter(lambda person: person['name'] == 'Severity',
+                                       redmine_issue.custom_fields))[0].value
+            severity_no = int(re.findall(r'\d+', esc_severity)[0])
+            issue_dict['customfield_14001'] = {
+                'value': settings.yaml_vars['esc_stories'][severity_no]}
+
+    elif issue_type == 'EPIC':
+        # Add Epic name.
+        issue_dict['customfield_10006'] = subject
+
+    elif issue_type == 'SPIKE':
+        # Update estimated hours, if available
+        time_estimated = None
+        if hasattr(redmine_issue, 'estimated_hours'):
+            time_estimated = redmine_issue.estimated_hours
+        else:
+            match = re.findall("ED:\s([-+]?\d*\.*\d+)", issue_description)
+            if match:
+                time_estimated = match[0] + 'd'
+        # Acceptance Criteria parsing is not supported.
+        # Default string is added as it is a mandatory field for any spike story.
+        issue_dict['customfield_10205'] = [{"name": "As per in the description"}]
+        if time_estimated:
+            # Remaining estimate is set to time_estimated, as it will be updated
+            # when we modify the logged time on this issue.
+            issue_dict['timetracking'] = {"originalEstimate": time_estimated,
+                                          "remainingEstimate": time_estimated}
+
+    # Check if Target version/Fix version field is available
+    issue_fixed_version = None
+    if hasattr(redmine_issue, 'fixed_version'):
+        issue_fixed_version = settings.yaml_vars['fix_versions'].get(
+            redmine_issue.fixed_version.name)
+    if issue_fixed_version:
+        issue_dict['fixVersions'] = [{'name': issue_fixed_version}]
+
+    try:
+        # Create a Jira issue
+        new_issue = settings.jira.create_issue(fields=issue_dict)
+        print("Created a new issue : {}".format(new_issue.key))
+    except Exception as e:
+        print("Failed to create a Jira issue: {}".format(e.text))
+        exit(-1)
+
+    # Update the reporter
+    author_id = redmine_issue.author.id
+    update_reporter(author_id, new_issue)
+
+    # Update Work Type
+    if issue_type != 'EPIC':
+        work_type = settings.yaml_vars['work_type'][redmine_work_type]
+        new_issue.update(fields={'customfield_11706': {'value': work_type}})
+        print("{}: Updated R&D Work Type to {}".format(new_issue.key, work_type))
+
+    # Update Time Spent
+    if redmine_issue.spent_hours:
+        time_spent = str(redmine_issue.spent_hours) + 'h'
+        settings.jira.add_worklog(new_issue, timeSpent=time_spent)
+        print("{}: Added the time spent to {}".format(new_issue.key, time_spent))
+
+    # Update relations
+    relate_issues(new_issue, redmine_issue)
+
+    # Update Story Points
+    if issue_type != 'EPIC':
+        records = reversed(list(item for item in redmine_issue.journals if hasattr(item, 'details')))
+        for record in records:
+            for detail in record.details:
+                # Update story points
+                if detail.get('property', '') == 'attr' and \
+                        detail.get('name', '') == 'story_points' and \
+                        detail.get('new_value') is not None:
+                    new_issue.update(customfield_10002=int(detail.get('new_value')))
+                    print("{}: Updated Story Points to {}".format(new_issue.key,
+                                                                  detail.get('new_value')))
+                    break
+            else:
+                continue
+            break
+
+    # Update Live Demo and fetch the PO role, ready status and the reviewed status.
+    is_ready = 'no'
+    is_reviewed = 'no'
+    po_role = None
+    for field in redmine_issue.custom_fields:
+        if field.name == 'Live Demo':
+            live_demo = field.value.capitalize()
+            new_issue.update(fields={'customfield_13504': {'value': live_demo}})
+            print("{}: Updated Live Demo to {}".format(new_issue.key, live_demo))
+        if field.name == 'Is Ready':
+            is_ready = field.value.lower()
+        if field.name == 'Is Reviewed':
+            is_reviewed = field.value.lower()
+        if field.name == 'PO Role':
+            po_role = field.value.lower()
+
+    # Update the Assignee
+    if po_role:
+        po_user = settings.redmine.user.filter(name=po_role)
+        if po_user:
+            po_username = get_login(po_user[0].id)
+            update_assignee(new_issue, redmine_issue, po_username)
+    else:
+        update_assignee(new_issue, redmine_issue)
+
+    # Update Issue status
+    # If the issue is reviewed, ready and in New state change the status to 'Ready' in Jira.
+    if redmine_issue.status.name.lower() == 'new' and is_ready == 'yes' and is_reviewed == 'yes':
+        update_status(new_issue, 'to do', 'issue')
+    else:
+        update_status(new_issue, redmine_issue.status.name.lower(), 'issue')
+
+    # Add attachments.
+    add_attachments(redmine_issue, new_issue)
+
+    # Add comments.
+    add_comments(redmine_issue, new_issue)
+
+    # Add sub-tasks (along with their attachments and comments).
+    if issue_type != 'EPIC':
+        add_subtasks(redmine_issue, new_issue)
+    else:
+        print("Sub-tasks (child backlog items) of the epic stories are not imported. But you can "
+              "link the PBI to this epic while importing from Redmine.\n"
+              "You just have to use -e {} in the command line.".format(new_issue.key))
+
+    # Update Jira Epic link, if provided in the command line.
+    if settings.arg_vars.epic:
+        new_issue.update(fields={'customfield_10005': settings.arg_vars.epic})
+        print("{}: Updated Epic link to {}".format(new_issue.key, settings.arg_vars.epic))
+
+    return new_issue
 
 
 def get_issue_work_type(redmine_issue):
