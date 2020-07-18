@@ -414,13 +414,40 @@ def create_jira_issue(redmine_issue):
 
 def get_issue_work_type(redmine_issue):
     """
-    Get the issue and R&D work type for the given Redmine issue.
+    Get the issue and work type for the given Redmine issue.
     Parameters:
         redmine_issue (obj): Redmine issue (Resource object).
     Returns:
         issue_type (str):  Issue type.
-        redmine_work_type (str):  R&D Work Type.
+        redmine_work_type (str):  Work Type.
     """
+    # Retrieve all the tags in the Redmine issue subject and determine the issue and work type.
+    type_search = re.findall(r"\[([A-Za-z-0-9_]+)\]+", redmine_issue.subject)
+    if 'SPIKE' in type_search:
+        issue_type = 'SPIKE'
+    elif redmine_issue.tracker.name == 'Epic':
+        issue_type = 'EPIC'
+    elif redmine_issue.tracker.name == 'Support Case':
+        redmine_work_type = 'M'
+        esc_documentation = list(filter(lambda person: person['name'] == 'ESC Documentation',
+                                        redmine_issue.custom_fields))[0].value.lower()
+        if esc_documentation == 'no':
+            issue_type = 'ESCSTORY'
+        else:
+            issue_type = 'ESCDOC'
+        return issue_type, redmine_work_type
+    elif redmine_issue.tracker.name == 'Enhancement Request':
+        redmine_work_type = 'M'
+        issue_type = 'ESCCR'
+        return issue_type, redmine_work_type
+
+    else:
+        items = [item for item in type_search if item in list(settings.yaml_vars['issue_types'].keys())]
+        issue_type = 'DEFAULT' if not items else items[0]
+    work_types = [item for item in type_search
+                  if item in list(settings.yaml_vars['work_type'].keys())]
+    redmine_work_type = work_types[0] if work_types else 'NPD'
+    return issue_type, redmine_work_type
 
 
 def update_subject_description(redmine_issue):
