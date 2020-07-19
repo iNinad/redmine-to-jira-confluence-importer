@@ -460,6 +460,27 @@ def update_subject_description(redmine_issue):
         issue_description (str):  Issue description.
         subject (str):  Issue subject.
     """
+    subject = redmine_issue.subject.rpartition(']')[-1].strip()
+    if not subject:
+        subject = redmine_issue.subject.partition('[')[0].strip()
+        if not subject:
+            subject = redmine_issue.subject
+    tags = redmine_issue.subject.rpartition(']')[0].strip()
+    issue_relations = get_relations(redmine_issue.id)
+    relation_description = '' if not issue_relations else '\n\n*Redmine issue relations:*\n'
+    for relation in issue_relations:
+        relation_description += '\n* #{} {} #{}'.format(relation.get('issue_id'),
+                                                        relation.get('relation_type'),
+                                                        relation.get('issue_to_id'))
+
+    issue_description = '{} {} {} \n\n*Migrated from Redmine #{}* \n'.format(
+        redmine_issue.description, get_checklists(redmine_issue.id),
+        relation_description, redmine_issue.id)
+    issue_description = settings.update_formatting(issue_description)
+    if tags:
+        tags += ']'
+        issue_description += '\n Tags from the Redmine issue: {}'.format(tags)
+    return issue_description, subject
 
 
 def update_status(jira_issue, redmine_issue_status, category):
