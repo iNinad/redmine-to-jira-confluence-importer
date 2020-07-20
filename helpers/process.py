@@ -493,6 +493,20 @@ def update_status(jira_issue, redmine_issue_status, category):
     Returns:
         None.
     """
+    try:
+        if category == 'subtask' and redmine_issue_status == 'to do':
+            # By default, sub-tasks in Jira are in the 'TO DO' state.
+            return
+        if redmine_issue_status != 'new':
+            # Get the list of ids in the workflow transition defined in the YAML file.
+            workflow = settings.yaml_vars['issue_status'][redmine_issue_status] \
+                if category == 'issue' else settings.yaml_vars['subtask_status'][redmine_issue_status]
+            for step in workflow:
+                # Iterate through the workflow and change the status.
+                settings.jira.transition_issue(jira_issue, str(step))
+            print("Updated the status")
+    except Exception as e:
+        print('{}: Could not update the status : {}'.format(jira_issue.key, e.text))
 
 
 def update_redmine_issue(jira_issue_id, redmine_issue):
