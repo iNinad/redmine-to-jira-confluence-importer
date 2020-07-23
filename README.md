@@ -31,7 +31,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 
       `importer.py -w 'Wiki' -a`
    
-      Entire pages including their relations and hierarchy will be migrated to Confluence. 
+      Entire pages including their relations and hierarchy will be migrated to Confluence.
 
 * You can start migrating issues from Redmine to JIRA with a simple command like,
 
