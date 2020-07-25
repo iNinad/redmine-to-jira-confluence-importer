@@ -25,7 +25,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 
       `importer.py -w <Redmine Section/Parent page name (visible in the url)> -m`
     
-      Different sections are visible on the Redmine Wiki index page.  All the child pages including their hierarchy will be migrated to Confluence. 
+      Different sections are visible on the Redmine Wiki index page.  All the child pages including their hierarchy will be migrated to Confluence.
 
    -  Migration of **all Wiki pages** under the given project can be achieved by the following command,
 
