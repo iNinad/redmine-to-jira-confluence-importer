@@ -39,7 +39,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
 
 ## Further Notes
 
-* Following arguments are supported by the tool, 
+* Following arguments are supported by the tool,
 
     `importer.py [-h] (-i PBI | -w WIKI) [-m] [-a] [-r] [-e EPIC] [-rk REDMINEKEY] [-rp REDMINEPROJECT] [-ju JIRAUSER] [-jk JIRAKEY] [-jp JIRAPROJECT] 
     [-cs CONFLUENCESPACE] [-yml YAML]`
