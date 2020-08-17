@@ -45,7 +45,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
     [-cs CONFLUENCESPACE] [-yml YAML]`
  
       optional arguments:
-        -h, --help                                 Show this help message and exit
+        -h, --help                                 Show this help message and exit 
         -m, --multiple                             Import a section (parent with all the child pages) to Confluence
         -a, --all                                  Import all the pages from a given Redmine project to Confluence
         -r, --remove                               Remove the original Redmine Wiki content and add a link to the Confluence page
