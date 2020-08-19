@@ -7,7 +7,7 @@ Importer tool used to **migrate issues and wiki pages from Redmine to Jira and C
  * All the dependencies must be installed on your machine (described in the Step-by-step guide)
 
 
-## Step-by-step guide
+## Step-by-step guide 
 
  * You will find the requirements.txt file with the list of dependencies, please install them using the following command
    
