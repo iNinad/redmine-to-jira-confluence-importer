@@ -1,5 +1,5 @@
 # redmine-to-jira-confluence
-Importer tool can be use to **migrate issues and wiki pages from Redmine to Jira and Confluence**.
+Importer tool can be used to **migrate issues and wiki pages from Redmine to Jira and Confluence**.
 
 ## Prerequisites
  * Python 3.4 or above installed on your machine
