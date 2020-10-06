@@ -17,7 +17,7 @@ Importer tool can be used to **migrate issues and wiki pages from Redmine to Jir
  * **For Redmine Wiki to Confluence migration**, following **three modes** are supported,
     
    -  **Single page** migration can be performed with the following command,
-    
+   
       `importer.py -w <Redmine Wiki page name (visible in the url)>`
    
    -  **Section** migration is possible by executing the following command,
