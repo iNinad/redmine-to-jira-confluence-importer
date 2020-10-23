@@ -9,9 +9,9 @@ Importer tool can be used to **migrate issues and wiki pages from Redmine to Jir
 ## Step-by-step guide
 
  * You will find the requirements.txt file with the list of dependencies, please install them using the following command
-
+ 
    `pip install -r requirements.txt`
-  
+ 
  * Once you have all the dependencies installed, you can start migrating Redmine issues or Wiki pages to Jira or Confluence.
  * More information can be provided using a YAML file. You will find two YAML files in the helpers directory.
  * **For Redmine Wiki to Confluence migration**, following **three modes** are supported,
